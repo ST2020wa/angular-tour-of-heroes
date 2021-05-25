@@ -14,11 +14,13 @@ export class HeroService {
     private http: HttpClient,
     private messageService: MessageService) { }
   private heroesUrl = 'api/heroes'; // URL to web api
+  httpOptions = {
+    header: new HttpHeaders({'Content-Type': 'application/json'})
+  };
   // tslint:disable-next-line:typedef
   private log(message: string){
     this.messageService.add(`HeroService: ${message}`);
-  };
-  // tslint:disable-next-line:typedef
+  }  // tslint:disable-next-line:typedef
   private handleError<T>(operation = 'operation', result?: T){
     return (error: any): Observable<T> => {
       // TODO: send the error to remote logging infrastructure
@@ -30,7 +32,7 @@ export class HeroService {
     };
   }
   getHeroes(): Observable<Hero[]>{
-    return this.http.get<Hero[]>(this.heroesUrl)
+    return this.http.get<Hero[]>(this.heroesUrl);
   }
   getHero(id: number): Observable<Hero>{
     const url = `${this.heroesUrl}/${id}`;
@@ -39,6 +41,43 @@ export class HeroService {
       catchError(this.handleError<Hero>(`getHero id=${id}`))
     );
   }
+  updateHero(hero: Hero): Observable<any>{
+    // @ts-ignore
+    return this.http.put(this.heroesUrl, hero, this.httpOptions).pipe(
+      tap(_ => this.log(`updated hero id=${hero.id}`)),
+      catchError(this.handleError<any>('updateHero'))
+    );
+  }
+  /** POST: add a new hero to the server */
+  addHero(hero: Hero): Observable<Hero> {
+    // @ts-ignore
+    return this.http.post<Hero>(this.heroesUrl, hero, this.httpOptions).pipe(
+      // @ts-ignore
+      tap((newHero: Hero) => this.log(`added hero w/ id=${newHero.id}`)),
+      catchError(this.handleError<Hero>('addHero'))
+    );
+  }
+  deleteHero(id: number): Observable<Hero> {
+    const url = `${this.heroesUrl}/${id}`;
+    // @ts-ignore
+    return this.http.delete<Hero>(url, this.httpOptions).pipe(
+      tap(_ => this.log(`deleted hero id=${id}`)),
+      catchError(this.handleError<Hero>('deleteHero'))
+    );
+  }
+  searchHeroes(term: string): Observable<Hero[]> {
+    if (!term.trim()) {
+      // if not search term, return empty hero array.
+      return of([]);
+    }
+    return this.http.get<Hero[]>(`${this.heroesUrl}/?name=${term}`).pipe(
+      tap(x => x.length ?
+        this.log(`found heroes matching "${term}"`) :
+        this.log(`no heroes matching "${term}"`)),
+      catchError(this.handleError<Hero[]>('searchHeroes', []))
+    );
+  }
+
 }
 
 
